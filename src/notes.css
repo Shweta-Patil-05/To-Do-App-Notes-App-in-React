@@ -1,0 +1,2 @@
+.note-category-filter{display:flex;align-items:center;gap:2px;margin-left:10px}.note-category-filter button{border:0;background:transparent;border-radius:5px;padding:5px 7px;color:#999ba2;font-size:9px}.note-category-filter button.selected{background:#f1eef8;color:#7558c4;font-weight:600}
+@media(max-width:520px){.notes-toolbar{gap:10px;flex-wrap:wrap}.notes-search{width:100%}.notes-count{width:100%;flex-wrap:wrap}.note-category-filter{margin-left:auto}.note-category-filter button{padding:5px}}
