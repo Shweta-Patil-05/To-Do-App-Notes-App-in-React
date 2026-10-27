@@ -111,7 +111,7 @@ function LoginPage({ onLogin }) {
 export default function App() {
   const [tasks, setTasks] = useState(() => getStored('daylight-tasks', starterTasks));
   const [notes, setNotes] = useState(() => getStored('daylight-notes', starterNotes));
-  const [page, setPage] = useState('tasks'); const [category, setCategory] = useState('All tasks'); const [query, setQuery] = useState('');
+  const [page, setPage] = useState(() => window.location.hash === '#notes' ? 'notes' : 'tasks'); const [category, setCategory] = useState(() => window.location.hash === '#notes' ? 'All notes' : 'All tasks'); const [query, setQuery] = useState('');
   const [user, setUser] = useState(() => getStored('daylight-user', null));
   const [spaces, setSpaces] = useState(() => getStored('daylight-spaces', ['Work', 'Personal', 'Reading']));
   const [preferences, setPreferences] = useState(() => getStored('daylight-preferences', { compact: false, showFocus: true }));
@@ -120,23 +120,30 @@ export default function App() {
   useEffect(() => saveStored('daylight-notes', notes), [notes]);
   useEffect(() => saveStored('daylight-spaces', spaces), [spaces]);
   useEffect(() => saveStored('daylight-preferences', preferences), [preferences]);
+  useEffect(() => { document.title = user ? `Daylight — ${page === 'notes' ? 'Notebook' : 'Tasks'}` : 'Daylight — Sign in'; }, [page, user]);
   useEffect(() => {
     if (user && !history.state?.daylightUser) {
       const base = `${window.location.pathname}${window.location.search}`;
       history.replaceState(null, '', `${base}#login`);
-      history.pushState({ daylightUser: user }, '', `${base}#workspace`);
+      history.pushState({ daylightUser: user, page }, '', `${base}#${page}`);
     }
     const handlePopState = (event) => {
-      if (event.state?.daylightUser) { setUser(event.state.daylightUser); saveStored('daylight-user', event.state.daylightUser); }
-      else { setUser(null); localStorage.removeItem('daylight-user'); }
+      const savedUser = getStored('daylight-user', null);
+      if (event.state?.daylightUser && savedUser) {
+        const nextPage = event.state.page === 'notes' ? 'notes' : 'tasks';
+        setUser(savedUser); setPage(nextPage); setCategory(nextPage === 'notes' ? 'All notes' : 'All tasks'); setQuery('');
+      } else {
+        setUser(null); localStorage.removeItem('daylight-user');
+        if (window.location.hash !== '#login') history.replaceState(null, '', `${window.location.pathname}${window.location.search}#login`);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
   useEffect(() => { const key = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (user && page !== 'notes') window.dispatchEvent(new Event('open-task')); else document.querySelector(user ? '.notes-search input' : '#login-email')?.focus(); } if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && page === 'notes') { e.preventDefault(); document.querySelector('.notes-search input')?.focus(); } }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key); }, [page, user]);
-  const changePage = (next) => { setPage(next); setCategory(next === 'notes' ? 'All notes' : 'All tasks'); setQuery(''); };
-  const signOut = () => history.back();
-  const authenticate = (details) => { history.pushState({ daylightUser: details }, '', '#workspace'); setUser(details); saveStored('daylight-user', details); };
+  const changePage = (next) => { if (next !== page) history.pushState({ daylightUser: user, page: next }, '', `#${next}`); setPage(next); setCategory(next === 'notes' ? 'All notes' : 'All tasks'); setQuery(''); };
+  const signOut = () => { localStorage.removeItem('daylight-user'); setUser(null); setPage('tasks'); setCategory('All tasks'); setQuery(''); history.replaceState(null, '', `${window.location.pathname}${window.location.search}#login`); };
+  const authenticate = (details) => { history.pushState({ daylightUser: details, page: 'tasks' }, '', '#tasks'); setUser(details); saveStored('daylight-user', details); setPage('tasks'); setCategory('All tasks'); };
   const saveProfile = (details) => { setUser(details); saveStored('daylight-user', details); history.replaceState({ daylightUser: details }, '', '#workspace'); setDialog(null); };
   if (!user) return <LoginPage onLogin={authenticate} />;
   return <div className={`app-shell ${preferences.compact ? 'compact-mode' : ''}`}><Sidebar page={page} setPage={changePage} tasks={tasks} notes={notes} category={category} setCategory={setCategory} user={user} spaces={spaces} onAddSpace={() => setDialog('space')} onOpenProfile={() => setDialog('profile')} onOpenSettings={() => setDialog('settings')} /><div className="main-shell"><Topbar title={page === 'notes' ? 'Notes' : category} subtitle="A calm space to organize your day." query={query} setQuery={setQuery} onSearch={() => {}} onSettings={() => setDialog('settings')} onOpenProfile={() => setDialog('profile')} page={page} user={user} />{page === 'notes' ? <NotesPage notes={notes} setNotes={setNotes} query={query} setQuery={setQuery} category={category} setCategory={setCategory} spaces={spaces} /> : <TasksPage tasks={tasks} setTasks={setTasks} category={category} setCategory={setCategory} query={query} spaces={spaces} showFocus={preferences.showFocus} compact={preferences.compact} />}</div>{dialog && <WorkspaceDialog type={dialog} user={user} spaces={spaces} preferences={preferences} onPreferences={setPreferences} onSaveProfile={saveProfile} onLogout={signOut} onClose={() => setDialog(null)} onSaveSpace={(name) => { const next = [...spaces, name]; setSpaces(next); setCategory(name); setPage('tasks'); setDialog(null); }} />}</div>;
