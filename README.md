@@ -19,7 +19,8 @@ The app opens with a demo sign-in page. Enter your name, a valid email address, 
 - Search note titles and content
 - Organize notes into Work, Personal, and Reading spaces
 - Choose a note color and see when each note was last updated
-- Responsive card layout
+- Dedicated notebook layout with a searchable note library, pinned notes, category folders, and a spacious writing editor
+- Responsive notebook and writing view
 
 ### Shared
 - Local storage persistence for tasks and notes
